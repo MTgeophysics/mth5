@@ -32,6 +32,11 @@ def get_channel_from_row(client, row):
 
 def make_network_inventory(df, client):
     """
+    20220109: This can be made more robust.  The issue here is that the same network
+    can be returned multiple times, if the dataframe calls data from the same network
+    with mutiple start times.  The way to simplify the situationis to return only
+    the unique netowrks.  This however is going to require a re-keying of the
+    dictionary.  See comments in issue#76
 
     Parameters
     ----------
@@ -128,6 +133,8 @@ def channel_summary_to_make_mth5(df, network="ZU"):
     particular schema (which should be written down somewhere!)
 
     This returns a dataframe with the schema that MakeMTH5() expects.
+
+    TODO: This method could be an option for output format of mth5.channel_summary()
 
     Parameters
     ----------

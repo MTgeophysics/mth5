@@ -323,12 +323,15 @@ class MakeMTH5:
         inv = Inventory(networks=[], source="MTH5")
 
         # sort the values to be logically ordered
+        # NETWORK / STATION / LOCATION / CHANNEL / START
         df.sort_values(self.column_names[:-1])
 
         network_inventory = make_network_inventory(df, client)
         station_inventory = make_station_inventory(df, client)
+
+        # Pack the stations with channels
+        # def pack_stations_with_channels(active_stations, df, client, streams, data)
         for row in df.itertuples():
-            active_network = network_inventory[row.network][row.start]
             active_station = station_inventory[row.station][row.network][row.start]
             cha_inv = get_channel_from_row(client, row)
             returned_chan = cha_inv.networks[0].stations[0].channels[0]
@@ -337,7 +340,30 @@ class MakeMTH5:
             if data:
                 streams = augment_streams(row, streams, client)
 
-            active_network.stations.append(active_station)
+        # Pack the Networks with stations
+        # for every network_id, you can have multiple starttimes
+        for network_id in network_inventory.keys():
+            for start in network_inventory[network_id].keys():
+                active_network = network_inventory[network_id][start]
+                # find all stations associated with this network-start pair
+                cond1 = df["network"] == network_id
+                cond2 = df["start"] == start
+                sub_df = df[cond1 & cond2]
+                relevant_station_ids = sub_df["station"].unique()
+                for station_id in relevant_station_ids:
+                    active_station = station_inventory[station_id][network_id][start]
+                    active_network.stations.append(active_station)
+
+        # this begs for a groupby
+        # for network_id, network_df in df.groupby("network", "start"):
+        #     sub_network
+        #     for station_id, station_df in network_df.groupby("staiton"):
+        #         sub_station
+        # for every network of start-time X
+        # Add every station (with that net name and that start time)
+        # for row in station_df.itertuples():
+        #     #this adds the station many times.
+        #     active_network.stations.append(active_station)
 
         for network_id in network_inventory.keys():
             for start in network_inventory[network_id]:

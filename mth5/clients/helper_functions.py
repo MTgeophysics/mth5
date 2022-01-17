@@ -1,6 +1,28 @@
 import pandas as pd
 from obspy import UTCDateTime
 
+from typing import Dict, Any
+import hashlib
+import json
+
+
+def dict_hash(dictionary: Dict[str, Any]) -> str:
+    """MD5 hash of a dictionary.
+    source:
+    https://www.doc.ic.ac.uk/~nuric/coding/how-to-hash-a-dictionary-in-python.html
+    There could be any values, such as lists, floats and other types.
+    Note the two following assumptions:
+    We will assume any value is serialisable as a string.
+    We assume the keys are strings which allows us to order them.
+    """
+
+    dhash = hashlib.md5()
+    # We need to sort arguments so {'a': 1, 'b': 2} is
+    # the same as {'b': 2, 'a': 1}
+    encoded = json.dumps(dictionary, sort_keys=True).encode()
+    dhash.update(encoded)
+    return dhash.hexdigest()
+
 
 def get_channel_from_row(client, row):
     """
@@ -30,6 +52,16 @@ def get_channel_from_row(client, row):
     return channel_inventory
 
 
+def get_network_uuid(network):
+    print("this fails because ")
+    print("TypeError: Object of type Comment is not JSON serializable")
+    try:
+        uuid = dict_hash(network.__dict__)
+    except TypeError:
+        uuid = None
+    return uuid
+
+
 def make_network_inventory(df, client):
     """
     20220109: This can be made more robust.  The issue here is that the same network
@@ -48,6 +80,7 @@ def make_network_inventory(df, client):
     Dictionary keyed first by network_id, and then by starttime of desired streams.
     """
     print("Making Network Inventory")
+    df["netork_uuid"] = ""
     networks = {}
     for network_id in df.network.unique():
         networks[network_id] = {}
@@ -61,6 +94,13 @@ def make_network_inventory(df, client):
                     row.start, row.end, network=row.network, level="network"
                 )
                 networks[network_id][row.start] = net_inv.networks[0]
+                # HERE is where you tranlate network into a UUID
+                # that UUID is appended to
+                # network = net_inv.networks[0]
+                # uuid = get_network_uuid(network)
+                # if uuid is None:
+                #     uuid = f"{network_id}_{row.start}"
+                # sub_df["network_uuid"] = uuid
     return networks
 
 

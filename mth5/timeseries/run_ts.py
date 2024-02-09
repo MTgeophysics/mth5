@@ -66,7 +66,6 @@ class RunTS:
         station_metadata=None,
         survey_metadata=None,
     ):
-
         self.logger = logger
         self._survey_metadata = self._initialize_metadata()
         self._dataset = xr.Dataset()
@@ -96,7 +95,6 @@ class RunTS:
         return self.__str__()
 
     def __eq__(self, other):
-
         if not isinstance(other, RunTS):
             raise TypeError(f"Cannot compare RunTS with {type(other)}.")
         if not other.survey_metadata == self.survey_metadata:
@@ -451,7 +449,6 @@ class RunTS:
 
         filter_list = []
         if ch_name in self.dataset.keys():
-
             for filter_name in self.dataset[ch_name].attrs["filter.name"]:
                 try:
                     filter_list.append(self.filters[filter_name])
@@ -464,7 +461,6 @@ class RunTS:
     def __getattr__(self, name):
         # change to look for keys directly and use type to set channel type
         if name in self.dataset.keys():
-
             ch_response_filter = self._get_channel_response(name)
             # if cannot get filters, but the filters name indicates that
             # filters should be there don't input the channel response filter
@@ -552,9 +548,7 @@ class RunTS:
         """
 
         if station_metadata is not None:
-            station_metadata = self._validate_station_metadata(
-                station_metadata
-            )
+            station_metadata = self._validate_station_metadata(station_metadata)
 
             runs = ListDict()
             if self.run_metadata.id not in ["0", 0]:
@@ -774,9 +768,7 @@ class RunTS:
     def end(self):
         """End time UTC"""
         if self.has_data():
-            return MTime(
-                self.dataset.coords["time"].to_index()[-1].isoformat()
-            )
+            return MTime(self.dataset.coords["time"].to_index()[-1].isoformat())
         return self.run_metadata.time_period.end
 
     @property
@@ -872,10 +864,9 @@ class RunTS:
         but there are runs with only one sample (numerically identical
         to the adjacent sample) so try removing these.
         """
-        msg = f"Possible Leap Second Bug -- see issue #169"
+        msg = "Possible Leap Second Bug -- see issue #169"
         self.logger.warning(msg)
         return [x for x in array_list if x.n_samples != 1]
-
 
     def from_obspy_stream(self, obspy_stream, run_metadata=None):
         """
@@ -1220,6 +1211,27 @@ class RunTS:
         new_run.filters = ts_filters
 
         return new_run
+
+    def rotate_electric_channels(self, **kwargs):
+        """
+        chanel rotation should have the form
+
+        ex={"angle": 0, "dip": 0, "roll": 0}
+
+        | cos(yaw)cos(pitch) -cos(yaw)sin(pitch)sin(roll)-sin(yaw)cos(roll) -cos(yaw)sin(pitch)cos(roll)+sin(yaw)sin(roll)|
+        | sin(yaw)cos(pitch) -sin(yaw)sin(pitch)sin(roll)+cos(yaw)cos(roll) -sin(yaw)sin(pitch)cos(roll)-cos(yaw)sin(roll)|
+        | sin(pitch)          cos(pitch)sin(roll)                            cos(pitch)sin(roll)|
+
+        :param **kwargs: DESCRIPTION
+        :type **kwargs: TYPE
+        :return: DESCRIPTION
+        :rtype: TYPE
+
+        """
+        pass
+
+    def rotate_magnetic_channels(self, hx=0, hy=0, hz=0):
+        pass
 
     def plot(
         self,
